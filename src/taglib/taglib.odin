@@ -58,3 +58,9 @@ foreign taglib {
 	// Frees all of the strings that have been created
 	tag_free_strings :: proc() ---
 }
+
+foreign import strip "../../lib/libstrip.so"
+
+foreign strip {
+	strip_mp3_tags :: proc(path: cstring) -> BOOL ---
+}

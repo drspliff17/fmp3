@@ -106,7 +106,7 @@ loader_load_file :: proc(loader: ^Loader, path: string) -> bool {
 	return true
 }
 
-// Attempts to load all valif files inside given path
+// Attempts to load all valid files inside given path
 loader_load_directory :: proc(loader: ^Loader, path: string) -> bool {
 	if !loader_validate_directory(path) do return false
 
@@ -122,4 +122,15 @@ loader_load_directory :: proc(loader: ^Loader, path: string) -> bool {
 
 	for f in files do if loader_validate_from_file_info(f) do loader_append_mp3(loader, f.fullpath)
 	return true
+}
+
+// Attempts to load given path, calling either loader_load_directory or loader_load_file based on type
+loader_load_path :: proc(loader: ^Loader, path: string) -> bool {
+	if loader_validate_directory(path) {
+		return loader_load_directory(loader, path)
+	} else if loader_validate_from_string(path) {
+		return loader_load_file(loader, path)
+	} else {
+		return false
+	}
 }

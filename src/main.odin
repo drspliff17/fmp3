@@ -21,14 +21,7 @@ MODES :: enum {
 	NONE,
 	SET,
 	GET,
-}
-
-State :: struct {
-	arg_paths:                    [dynamic]string,
-	arg_title:                    string,
-	arg_artist:                   string,
-	arg_album:                    string,
-	flag_get_single_line_entries: bool,
+	CLEAR,
 }
 
 print_help :: proc() {
@@ -42,13 +35,7 @@ main :: proc() {
 	defer loader_free(loader)
 
 	state := State{}
-	defer {
-		if len(state.arg_title) > 0 do delete_string(state.arg_title)
-		if len(state.arg_artist) > 0 do delete_string(state.arg_artist)
-		if len(state.arg_album) > 0 do delete_string(state.arg_album)
-		for s in state.arg_paths do delete_string(s)
-		delete(state.arg_paths)
-	}
+	defer state_free(&state)
 
 	mode: MODES
 	arg := os.args[1:]
@@ -64,6 +51,59 @@ main :: proc() {
 			for s in arg[1:] do append(&state.arg_paths, fmt.aprintf("%s", s))
 			mode = .GET
 			arg = {}
+
+		case "-clr", "clear", "--clear":
+			for s in arg[1:] do append(&state.arg_paths, fmt.aprintf("%s", s))
+			mode = .CLEAR
+			arg = {}
+
+		case "-s", "set", "--set":
+			a := arg[1:]
+			if len(a) < 3 {
+				fmt.eprintln(
+					"Expected at least 3 arguments.\nUsage: fmp3 -s -t 'Title Here' -a Artist -A 'Album' path/to/file [path/to/dir]",
+				)
+				os.exit(1)
+			}
+
+			for len(a) > 0 {
+				switch a[0] {
+				case "-t", "title", "--title":
+					if len(a) < 2 {
+						fmt.eprintln("Expected a value to set title tag")
+						os.exit(1)
+					}
+					state.arg_title = fmt.aprintf("%s", a[1])
+					a = a[2:]
+
+				case "-a", "artist", "--artist":
+					if len(a) < 2 {
+						fmt.eprintln("Expected a value to set artist tag")
+						os.exit(1)
+					}
+					state.arg_artist = fmt.aprintf("%s", a[1])
+					a = a[2:]
+
+				case "-A", "album", "--album":
+					if len(a) < 2 {
+						fmt.eprintln("Expected a value to set album tag")
+						os.exit(1)
+					}
+					state.arg_album = fmt.aprintf("%s", a[1])
+					a = a[2:]
+
+				case:
+					if !os.exists(a[0]) {
+						fmt.eprintfln("Invalid argument or nonexistent path: %s", a[0])
+						os.exit(1)
+					}
+					append(&state.arg_paths, fmt.aprintf("%s", a[0]))
+					a = a[1:]
+				}
+			}
+			mode = .SET
+			arg = {}
+
 		case:
 			fmt.eprintfln("Unknown argument: %s", arg[0])
 			os.exit(1)
@@ -76,6 +116,38 @@ main :: proc() {
 		return
 
 	case .SET:
+		if len(state.arg_paths) == 0 {
+			fmt.eprintln("Expected atleast one path")
+			os.exit(1)
+		}
+
+		load_state_arg_paths(loader, state.arg_paths[:])
+		if len(loader.files) == 0 {
+			fmt.eprintfln("No .mp3 files loaded")
+			os.exit(1)
+		}
+
+		for f in loader.files {
+			if state.arg_title != "" {
+				ct := fmt.caprintf("%s", state.arg_title)
+				tl.tag_set_title(f.tag, ct)
+				delete_cstring(ct)
+			}
+
+			if state.arg_artist != "" {
+				ca := fmt.caprintf("%s", state.arg_artist)
+				tl.tag_set_artist(f.tag, ca)
+				delete_cstring(ca)
+			}
+
+			if state.arg_album != "" {
+				cA := fmt.caprintf("%s", state.arg_album)
+				tl.tag_set_album(f.tag, cA)
+				delete_cstring(cA)
+			}
+
+			if tl.file_save(f.tagfile) == .FALSE do fmt.eprintfln("Failed to set tags: %s", f.path)
+		}
 
 	case .GET:
 		if len(state.arg_paths) == 0 {
@@ -83,24 +155,7 @@ main :: proc() {
 			os.exit(1)
 		}
 
-		for p, i in state.arg_paths {
-			if loader_validate_directory(p) {
-				loader_load_directory(loader, p)
-			} else if loader_validate_from_string(p) {
-				loader_load_file(loader, p)
-			} else {
-				fmt.eprintfln(
-					"Invalid path: %s - Expected either directory containing .mp3 files, or a path to an .mp3 file\nSkipping",
-					p,
-				)
-				if i == len(state.arg_paths) - 1 {
-					fmt.eprintfln("Aborting")
-					os.exit(1)
-				}
-				continue
-			}
-		}
-
+		load_state_arg_paths(loader, state.arg_paths[:])
 		if len(loader.files) == 0 {
 			fmt.eprintfln("No .mp3 files loaded")
 			os.exit(1)
@@ -123,6 +178,23 @@ main :: proc() {
 			}
 		}
 
+	case .CLEAR:
+		if len(state.arg_paths) == 0 {
+			fmt.eprintln("Expected atleast one path")
+			os.exit(1)
+		}
+
+		load_state_arg_paths(loader, state.arg_paths[:])
+		if len(loader.files) == 0 {
+			fmt.eprintfln("No .mp3 files loaded")
+			os.exit(1)
+		}
+
+		for f in loader.files {
+			cf := fmt.caprintf("%s", f.path)
+			if ok := tl.strip_mp3_tags(cf); ok == .FALSE do fmt.eprintfln("Failed to strip %s", f.path)
+			delete_cstring(cf)
+		}
 	}
 
 }
