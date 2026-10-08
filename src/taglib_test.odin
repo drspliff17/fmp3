@@ -71,3 +71,30 @@ edit_mp3_tags :: proc(t: ^testing.T) {
 	if testing.expect(t, artist != nil, "artist returned nil") do testing.expect_value(t, string(artist), "Test Artist")
 	if testing.expect(t, album != nil, "album returned nil") do testing.expect_value(t, string(album), "Test Album")
 }
+
+@(test)
+read_mp3_tags_manual_strings :: proc(t: ^testing.T) {
+	set_string_management_enabled(.FALSE)
+	defer set_string_management_enabled(.TRUE)
+
+	path: cstring = "/home/drspliff/dev/Odin/fmp3/test/All_Signs_Point_To_Lauderdale.mp3"
+	file := file_new(path)
+	if !testing.expect(t, file != nil, "file_new returned nil") do return
+	defer file_free(file)
+
+	tag := file_tag(file)
+	if !testing.expect(t, tag != nil, "file_tag returned nil") do return
+
+	title := tag_title(tag)
+	if title != nil do defer free(cast(rawptr)title)
+
+	artist := tag_artist(tag)
+	if artist != nil do defer free(cast(rawptr)artist)
+
+	album := tag_album(tag)
+	if album != nil do defer free(cast(rawptr)album)
+
+	if testing.expect(t, title != nil, "title returned nil") do testing.expect(t, len(string(title)) > 0, "title is empty")
+	if testing.expect(t, artist != nil, "artist returned nil") do testing.expect(t, len(string(artist)) > 0, "artist is empty")
+	if testing.expect(t, album != nil, "album returned nil") do testing.expect(t, len(string(album)) > 0, "album is empty")
+}
