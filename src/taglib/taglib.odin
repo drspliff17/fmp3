@@ -1,4 +1,4 @@
-package main
+package taglib
 
 import "core:c"
 
