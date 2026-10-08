@@ -2,7 +2,6 @@ package main
 
 import "core:fmt"
 import "core:os"
-import "core:strings"
 import tl "taglib"
 
 // Used explicitly by Loader
@@ -23,10 +22,14 @@ mp3_create :: proc(path: cstring) -> (mp3: MP3_File, ok: bool) {
 		return {}, false
 	}
 
-	//NOTE: Possibly use this here to ensure im not getting a relative path when passed from argument
-	//os.get_absolute_path()
+	p, e := os.get_absolute_path(string(path), context.allocator)
+	if e != nil {
+		tl.file_free(tf)
+		return {}, false
+	}
+
 	m := MP3_File {
-		path    = strings.clone(string(path)),
+		path    = p,
 		tagfile = tf,
 		tag     = tt,
 	}
