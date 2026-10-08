@@ -2,4 +2,6 @@ compile.sh
 ds_task.json
 createGH.sh
 fmp3
+lib/
 test/
+compile_strip.sh
