@@ -10,6 +10,8 @@ read_mp3_tags :: proc(t: ^testing.T) {
 	if !testing.expect(t, file != nil, "file_new returned nil") do return
 	defer file_free(file)
 
+	if testing.expect(t, file_is_valid(file) == .TRUE, "file_is_valid returned false") do return
+
 	tag := file_tag(file)
 	if !testing.expect(t, tag != nil, "file_tag returned nil") do return
 	defer tag_free_strings()
@@ -44,6 +46,8 @@ edit_mp3_tags :: proc(t: ^testing.T) {
 		if !testing.expect(t, file != nil, "file_new returned nil") do return
 		defer file_free(file)
 
+		if testing.expect(t, file_is_valid(file) == .TRUE, "file_is_valid returned false") do return
+
 		tag := file_tag(file)
 		if !testing.expect(t, tag != nil, "file_tag returned nil") do return
 
@@ -52,13 +56,15 @@ edit_mp3_tags :: proc(t: ^testing.T) {
 		tag_set_album(tag, "Test Album")
 
 		saved := file_save(file)
-		if !testing.expect(t, saved != 0, "file_save failed") do return
+		if !testing.expect(t, saved != .FALSE, "file_save failed") do return
 	}
 
 	file := file_new(new_path)
 	if !testing.expect(t, file != nil, "reopening edited file failed") do return
 	defer file_free(file)
 	defer tag_free_strings()
+
+	if testing.expect(t, file_is_valid(file) == .TRUE, "file_is_valid returned false") do return
 
 	tag := file_tag(file)
 	if !testing.expect(t, tag != nil, "file_tag returned nil") do return

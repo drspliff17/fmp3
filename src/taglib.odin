@@ -6,6 +6,7 @@ foreign import taglib "system:tag_c"
 
 File :: struct {}
 Tag :: struct {}
+AudioProperties :: struct {}
 
 BOOL :: enum c.int {
 	FALSE = 0,
@@ -32,6 +33,9 @@ foreign taglib {
 
 	// Save the file to disk
 	file_save :: proc(file: ^File) -> BOOL ---
+
+	// Return true if the file is open and readable and valid information for the Tag/AudioProperties was found
+	file_is_valid :: proc(file: ^File) -> BOOL ---
 
 	// Returns cstring with the tag's title
 	tag_title :: proc(tag: ^Tag) -> cstring ---
