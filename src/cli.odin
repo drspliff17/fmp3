@@ -100,3 +100,31 @@ cli_confirmation_prompt :: proc(
 	if treat_invalid_as_negative do return .NEGATIVE
 	return .INVALID
 }
+
+// Prints error and exits program if:
+// Fails to resolve cwd, fails to resolve output path, or
+// confirmation prompt returns NEGATIVE
+// Else - returns allocated path string
+cli_validate_arg_output :: proc(a: string) -> string {
+	dir, de := os.get_working_directory(context.allocator)
+	if de != nil {
+		fmt.eprintfln("Failed to resolve current working directory: %v", de)
+		os.exit(1)
+	}
+	defer delete_string(dir)
+
+	path, e := os.join_path({dir, a}, context.allocator)
+	if e != nil {
+		fmt.eprintfln("Failed to resolve output redirect path: %s - %v", a, e)
+		os.exit(1)
+	}
+	if os.exists(path) {
+		fmt.eprintln("[WARN] Output redirect path already exists. Confirm overwrite: [Y/n]")
+		conf := cli_confirmation_prompt(": ", true)
+		if conf == .NEGATIVE {
+			fmt.eprintfln("Aborting")
+			os.exit(0)
+		}
+	}
+	return path
+}

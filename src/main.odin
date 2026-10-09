@@ -32,28 +32,7 @@ main :: proc() {
 						fmt.eprintln("Expected a path for output redirect")
 						os.exit(1)
 					}
-					dir, de := os.get_working_directory(context.allocator)
-					if de != nil {
-						fmt.eprintfln("Failed to resolve current working directory: %v", de)
-						os.exit(1)
-					}
-					defer delete_string(dir)
-
-					p, e := os.join_path({dir, a[1]}, context.allocator)
-					if e != nil {
-						fmt.eprintfln("Failed to resolve output redirect path: %s - %v", a[1], e)
-						os.exit(1)
-					}
-					if os.exists(p) {
-						fmt.eprintln(
-							"[WARN] Output redirect path already exists. Confirm overwrite: [Y/n]",
-						)
-						conf := cli_confirmation_prompt(": ", true)
-						if conf == .NEGATIVE {
-							fmt.eprintfln("Aborting")
-							os.exit(0)
-						}
-					}
+					p := cli_validate_arg_output(a[1])
 					state.arg_output_path = p
 					a = a[2:]
 
