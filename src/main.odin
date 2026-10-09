@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:os"
+import "core:strings"
 import tl "taglib"
 
 main :: proc() {
@@ -143,21 +144,33 @@ main :: proc() {
 	case .GET:
 		cli_load_paths(loader, &state)
 
-		for f in loader.files {
-			title := tl.tag_title(f.tag)
-			artist := tl.tag_artist(f.tag)
-			album := tl.tag_album(f.tag)
-			if state.flag_get_single_line_entries {
-				fmt.printfln("%s - T = %s - Ar = %s - Al = %s", f.path, title, artist, album)
-			} else {
-				fmt.printf(
-					"%s\n - Title  =  %s\n - Artist =  %s\n - Album  =  %s\n\n",
-					f.path,
-					title,
-					artist,
-					album,
-				)
+		if state.arg_output_path == "" {
+			for f in loader.files {
+				s := cli_get_mp3_string(f, state.flag_get_single_line_entries)
+				fmt.print(s)
+				delete_string(s)
 			}
+		} else {
+			ts := make([dynamic]string)
+			defer {
+				for s in ts do delete_string(s)
+				delete(ts)
+			}
+
+			for f in loader.files {
+				s := cli_get_mp3_string(f, state.flag_get_single_line_entries)
+				append(&ts, s)
+			}
+
+			str := strings.concatenate(ts[:], context.allocator)
+			defer delete_string(str)
+
+			e := os.write_entire_file_from_string(state.arg_output_path, str)
+			if e != nil {
+				fmt.eprintfln("Failed to write output: %s - %v", state.arg_output_path, e)
+				os.exit(1)
+			}
+
 		}
 
 	//

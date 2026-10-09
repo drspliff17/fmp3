@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:mem"
 import "core:os"
 import "core:strings"
+import tl "taglib"
 
 CLI_PROMPT_RETURN :: enum {
 	POSITIVE,
@@ -127,4 +128,33 @@ cli_validate_arg_output :: proc(a: string) -> string {
 		}
 	}
 	return path
+}
+
+cli_get_mp3_string :: proc(
+	file: MP3_File,
+	single_line_entry: bool,
+	allocator: mem.Allocator = context.allocator,
+) -> string {
+	title := tl.tag_title(file.tag)
+	artist := tl.tag_artist(file.tag)
+	album := tl.tag_album(file.tag)
+	if single_line_entry {
+		return fmt.aprintfln(
+			"%s - T = %s - Ar = %s - Al = %s",
+			file.path,
+			title,
+			artist,
+			album,
+			allocator = allocator,
+		)
+	} else {
+		return fmt.aprintf(
+			"%s\n - Title  =  %s\n - Artist =  %s\n - Album  =  %s\n\n",
+			file.path,
+			title,
+			artist,
+			album,
+			allocator = allocator,
+		)
+	}
 }
