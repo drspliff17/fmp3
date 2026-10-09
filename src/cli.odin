@@ -21,6 +21,7 @@ CLI_State :: struct {
 	arg_title:                    string,
 	arg_artist:                   string,
 	arg_album:                    string,
+	arg_output_path:              string,
 	flag_get_single_line_entries: bool,
 }
 
@@ -42,6 +43,7 @@ cli_state_free :: proc(state: ^CLI_State) {
 	if len(state.arg_title) > 0 do delete_string(state.arg_title)
 	if len(state.arg_artist) > 0 do delete_string(state.arg_artist)
 	if len(state.arg_album) > 0 do delete_string(state.arg_album)
+	if len(state.arg_output_path) > 0 do delete_string(state.arg_output_path)
 	for s in state.arg_paths do delete_string(s)
 	delete(state.arg_paths)
 }

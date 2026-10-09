@@ -20,13 +20,27 @@ main :: proc() {
 
 		//
 		case "-g", "get", "--get":
-			switch arg[1] {
-			case "-l", "line", "--line":
-				state.flag_get_single_line_entries = true
-				arg = arg[1:]
-			}
+			a := arg[1:]
+			for len(a) > 0 {
+				switch a[0] {
+				case "-l", "line", "--line":
+					state.flag_get_single_line_entries = true
+					a = a[1:]
 
-			for s in arg[1:] do append(&state.arg_paths, fmt.aprintf("%s", s))
+				case "-o", "out", "--output":
+					if len(a[1:]) == 0 {
+						fmt.eprintln("Expected a path for output redirect")
+						os.exit(1)
+					}
+					state.arg_output_path = fmt.aprint("%s", a[1])
+					a = a[2:]
+
+				case:
+					append(&state.arg_paths, fmt.aprintf("%s", a[0]))
+					a = a[1:]
+
+				}
+			}
 			mode = .GET
 			arg = {}
 
