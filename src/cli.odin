@@ -1,7 +1,15 @@
 package main
 
 import "core:fmt"
+import "core:mem"
 import "core:os"
+import "core:strings"
+
+CLI_PROMPT_RETURN :: enum {
+	POSITIVE,
+	NEGATIVE,
+	INVALID,
+}
 
 // Core CLI modes, effectively dispatchers
 CLI_MODES :: enum {
@@ -46,4 +54,49 @@ cli_state_free :: proc(state: ^CLI_State) {
 	if len(state.arg_output_path) > 0 do delete_string(state.arg_output_path)
 	for s in state.arg_paths do delete_string(s)
 	delete(state.arg_paths)
+}
+
+// Simple In/Out prompt, displays given string, returns allocated user input data
+cli_generic_prompt :: proc(
+	display_msg: string,
+	allocator: mem.Allocator = context.allocator,
+) -> string {
+	fmt.print(display_msg)
+	buf: [1]u8
+	out: [256]u8
+	i := 0
+	for {
+		n, err := os.read(os.stdin, buf[:])
+		if err != nil || n == 0 do break
+		if buf[0] == '\n' do break
+		if i < len(out) {
+			out[i] = buf[0]
+			i += 1
+		}
+	}
+	return fmt.aprintf("%s", string(out[:i]))
+}
+
+// Extends genericPrompt, checks if input is within  defaults [y/yes - n/no] (case insensitive)
+// Optionally, can set treat_invalid_as_negative, to prevent returning Prompt_Return.InvalidInput, when input does not match
+// p_valid or n_valid
+cli_confirmation_prompt :: proc(
+	display_msg: string,
+	treat_invalid_as_negative: bool,
+	allocator: mem.Allocator = context.allocator,
+) -> CLI_PROMPT_RETURN {
+	p_valid := []string{"y", "yes"}
+	n_valid := []string{"n", "no"}
+
+	input := cli_generic_prompt(display_msg, allocator)
+	linput := strings.to_lower(input, allocator)
+	defer {
+		delete_string(input)
+		delete_string(linput)
+	}
+
+	for pk in p_valid do if linput == pk do return .POSITIVE
+	for nk in n_valid do if linput == nk do return .NEGATIVE
+	if treat_invalid_as_negative do return .NEGATIVE
+	return .INVALID
 }
