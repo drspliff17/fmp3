@@ -62,5 +62,6 @@ foreign taglib {
 foreign import strip "../../lib/libstrip.so"
 
 foreign strip {
+	// Remove all tags from the given path
 	strip_mp3_tags :: proc(path: cstring) -> BOOL ---
 }

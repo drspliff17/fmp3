@@ -35,6 +35,7 @@ CLI_State :: struct {
 	flag_get_single_line_entries: bool,
 }
 
+//TODO:
 cli_print_help :: proc() {
 	fmt.printfln(`fmp3
 `)
@@ -117,27 +118,39 @@ cli_validate_arg_output :: proc(
 	a: string,
 	allocator: mem.Allocator = context.allocator,
 ) -> string {
-	dir, de := os.get_working_directory(allocator)
-	if de != nil {
-		fmt.eprintfln("Failed to resolve current working directory: %v", de)
-		os.exit(1)
-	}
-	defer delete_string(dir, allocator)
-
-	path, e := os.join_path({dir, a}, allocator)
-	if e != nil {
-		fmt.eprintfln("Failed to resolve output redirect path: %s - %v", a, e)
-		os.exit(1)
-	}
-	if os.exists(path) {
-		fmt.eprintln("[WARN] Output redirect path already exists. Confirm overwrite: [Y/n]")
-		conf := cli_confirmation_prompt(": ", true, allocator = allocator)
-		if conf == .NEGATIVE {
-			fmt.eprintfln("Aborting")
-			os.exit(0)
+	if os.is_absolute_path(a) {
+		if os.exists(a) {
+			fmt.eprintln("[WARN] Output redirect path already exists. Confirm overwrite: [Y/n]")
+			conf := cli_confirmation_prompt(": ", true, allocator = allocator)
+			if conf == .NEGATIVE {
+				fmt.eprintfln("Aborting")
+				os.exit(0)
+			}
 		}
+		return fmt.aprintf("%s", a)
+	} else {
+		dir, de := os.get_working_directory(allocator)
+		if de != nil {
+			fmt.eprintfln("Failed to resolve current working directory: %v", de)
+			os.exit(1)
+		}
+		defer delete_string(dir, allocator)
+
+		path, e := os.join_path({dir, a}, allocator)
+		if e != nil {
+			fmt.eprintfln("Failed to resolve output redirect path: %s - %v", a, e)
+			os.exit(1)
+		}
+		if os.exists(path) {
+			fmt.eprintln("[WARN] Output redirect path already exists. Confirm overwrite: [Y/n]")
+			conf := cli_confirmation_prompt(": ", true, allocator = allocator)
+			if conf == .NEGATIVE {
+				fmt.eprintfln("Aborting")
+				os.exit(0)
+			}
+		}
+		return path
 	}
-	return path
 }
 
 // Returns allocated string, for MP3_File tags. Optionally in single line per entry format
