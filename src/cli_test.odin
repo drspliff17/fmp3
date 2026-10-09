@@ -62,7 +62,7 @@ get_output_test :: proc(t: ^testing.T) {
 				"fmp3",
 				"-g",
 				"-o",
-				"text.txt",
+				"All_Signs_Point_To_Lauderdale.tags.txt",
 				"All_Signs_Point_To_Lauderdale.mp3",
 			},
 		},
@@ -74,6 +74,7 @@ get_output_test :: proc(t: ^testing.T) {
 	}
 
 	if !testing.expect(t, err == nil, "fmp3 process failed to execute") do return
+	if !testing.expect(t, !os.exists(tp), "failed to create output test file") do return
 }
 
 @(test)
