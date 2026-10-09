@@ -12,7 +12,6 @@ CLI_PROMPT_RETURN :: enum {
 	INVALID,
 }
 
-// Core CLI modes, effectively dispatchers
 CLI_MODES :: enum {
 	NONE,
 	SET,
@@ -20,22 +19,29 @@ CLI_MODES :: enum {
 	CLEAR,
 }
 
-print_help :: proc() {
+CLI_State :: struct {
+	// Represents the target files/directories parsed from arguments
+	arg_paths:                    [dynamic]string,
+
+	// When set, GET dispatch will output data to this path, instead of stdout
+	arg_output_path:              string,
+
+	//
+	arg_title:                    string,
+	arg_artist:                   string,
+	arg_album:                    string,
+
+	//
+	flag_get_single_line_entries: bool,
+}
+
+cli_print_help :: proc() {
 	fmt.printfln(`fmp3
 `)
 }
 
-CLI_State :: struct {
-	arg_paths:                    [dynamic]string,
-	arg_title:                    string,
-	arg_artist:                   string,
-	arg_album:                    string,
-	arg_output_path:              string,
-	flag_get_single_line_entries: bool,
-}
-
 // Wrapper for loading CLI_State.arg_paths (loader_load_path_slice), prints error and exits program
-// if no paths are given. Optionally error if no files are loaded after loader_load_path_slice() executes
+// if no paths are given. Optionally, error if no files are loaded after loader_load_path_slice() executes
 cli_load_paths :: proc(l: ^Loader, s: ^CLI_State, err_if_none_loaded: bool = true) {
 	if len(s^.arg_paths) == 0 {
 		fmt.eprintln("Expected atleast one path")
@@ -48,6 +54,7 @@ cli_load_paths :: proc(l: ^Loader, s: ^CLI_State, err_if_none_loaded: bool = tru
 	}
 }
 
+// CLI_State Destructor
 cli_state_free :: proc(state: ^CLI_State) {
 	if len(state.arg_title) > 0 do delete_string(state.arg_title)
 	if len(state.arg_artist) > 0 do delete_string(state.arg_artist)
@@ -79,7 +86,7 @@ cli_generic_prompt :: proc(
 }
 
 // Extends genericPrompt, checks if input is within  defaults [y/yes - n/no] (case insensitive)
-// Optionally, can set treat_invalid_as_negative, to prevent returning Prompt_Return.InvalidInput, when input does not match
+// Optionally, can treat_invalid_as_negative, to prevent returning .INVALID, when input does not match
 // p_valid or n_valid
 cli_confirmation_prompt :: proc(
 	display_msg: string,
@@ -104,24 +111,27 @@ cli_confirmation_prompt :: proc(
 
 // Prints error and exits program if:
 // Fails to resolve cwd, fails to resolve output path, or
-// confirmation prompt returns NEGATIVE
+// confirmation prompt returns .NEGATIVE
 // Else - returns allocated path string
-cli_validate_arg_output :: proc(a: string) -> string {
-	dir, de := os.get_working_directory(context.allocator)
+cli_validate_arg_output :: proc(
+	a: string,
+	allocator: mem.Allocator = context.allocator,
+) -> string {
+	dir, de := os.get_working_directory(allocator)
 	if de != nil {
 		fmt.eprintfln("Failed to resolve current working directory: %v", de)
 		os.exit(1)
 	}
-	defer delete_string(dir)
+	defer delete_string(dir, allocator)
 
-	path, e := os.join_path({dir, a}, context.allocator)
+	path, e := os.join_path({dir, a}, allocator)
 	if e != nil {
 		fmt.eprintfln("Failed to resolve output redirect path: %s - %v", a, e)
 		os.exit(1)
 	}
 	if os.exists(path) {
 		fmt.eprintln("[WARN] Output redirect path already exists. Confirm overwrite: [Y/n]")
-		conf := cli_confirmation_prompt(": ", true)
+		conf := cli_confirmation_prompt(": ", true, allocator = allocator)
 		if conf == .NEGATIVE {
 			fmt.eprintfln("Aborting")
 			os.exit(0)
@@ -130,6 +140,7 @@ cli_validate_arg_output :: proc(a: string) -> string {
 	return path
 }
 
+// Returns allocated string, for MP3_File tags. Optionally in single line per entry format
 cli_get_mp3_string :: proc(
 	file: MP3_File,
 	single_line_entry: bool,

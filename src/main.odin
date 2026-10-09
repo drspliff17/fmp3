@@ -111,7 +111,7 @@ main :: proc() {
 	// Dispatch mode
 	switch mode {
 	case .NONE:
-		print_help()
+		cli_print_help()
 		return
 
 	//
