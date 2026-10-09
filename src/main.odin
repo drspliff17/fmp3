@@ -4,43 +4,21 @@ import "core:fmt"
 import "core:os"
 import tl "taglib"
 
-//NOTE:
-// - Old default was to set the tags (which would be prompted, if not already set via options)
-//   of every file in the current working directory.
-// - Alt mode, only set the tags to the specified files (-f option, then each following arg was treated as a file path).
-// - Get mode, to dump the meta of specified files.
-// - Get missing, to return the paths of any files missing an album tag (From legacy process).
-// - Set files missing an album to current tags. (From legacy process).
-// - Trim mode, delete all tags from the file. (From legacy process).
-// - Target album, set the tags of only matching specified album tag (From legacy process, with prompt).
-// - Dump all, performs eyeD3 on every file in current working directory.
-// - Debug dump, lazily added recently, dumps only files in the current working directory that match the
-//   specified album tag.
-
-MODES :: enum {
-	NONE,
-	SET,
-	GET,
-	CLEAR,
-}
-
-print_help :: proc() {
-	fmt.printfln(`fmp3
-`)
-}
-
-
 main :: proc() {
 	loader := loader_init()
 	defer loader_free(loader)
 
-	state := State{}
-	defer state_free(&state)
+	state := CLI_State{}
+	defer cli_state_free(&state)
 
-	mode: MODES
+	mode: CLI_MODES
 	arg := os.args[1:]
+
+	// Parse args
 	for len(arg) > 0 {
 		switch arg[0] {
+
+		//
 		case "-g", "get", "--get":
 			switch arg[1] {
 			case "-l", "line", "--line":
@@ -52,11 +30,13 @@ main :: proc() {
 			mode = .GET
 			arg = {}
 
+		//
 		case "-clr", "clear", "--clear":
 			for s in arg[1:] do append(&state.arg_paths, fmt.aprintf("%s", s))
 			mode = .CLEAR
 			arg = {}
 
+		//
 		case "-s", "set", "--set":
 			a := arg[1:]
 			if len(a) < 3 {
@@ -104,28 +84,23 @@ main :: proc() {
 			mode = .SET
 			arg = {}
 
+		//
 		case:
 			fmt.eprintfln("Unknown argument: %s", arg[0])
 			os.exit(1)
 		}
 	}
 
+
+	// Dispatch mode
 	switch mode {
 	case .NONE:
 		print_help()
 		return
 
+	//
 	case .SET:
-		if len(state.arg_paths) == 0 {
-			fmt.eprintln("Expected atleast one path")
-			os.exit(1)
-		}
-
-		load_state_arg_paths(loader, state.arg_paths[:])
-		if len(loader.files) == 0 {
-			fmt.eprintfln("No .mp3 files loaded")
-			os.exit(1)
-		}
+		cli_load_paths(loader, &state)
 
 		for f in loader.files {
 			if state.arg_title != "" {
@@ -149,17 +124,9 @@ main :: proc() {
 			if tl.file_save(f.tagfile) == .FALSE do fmt.eprintfln("Failed to set tags: %s", f.path)
 		}
 
+	//
 	case .GET:
-		if len(state.arg_paths) == 0 {
-			fmt.eprintln("Expected atleast one path")
-			os.exit(1)
-		}
-
-		load_state_arg_paths(loader, state.arg_paths[:])
-		if len(loader.files) == 0 {
-			fmt.eprintfln("No .mp3 files loaded")
-			os.exit(1)
-		}
+		cli_load_paths(loader, &state)
 
 		for f in loader.files {
 			title := tl.tag_title(f.tag)
@@ -178,17 +145,9 @@ main :: proc() {
 			}
 		}
 
+	//
 	case .CLEAR:
-		if len(state.arg_paths) == 0 {
-			fmt.eprintln("Expected atleast one path")
-			os.exit(1)
-		}
-
-		load_state_arg_paths(loader, state.arg_paths[:])
-		if len(loader.files) == 0 {
-			fmt.eprintfln("No .mp3 files loaded")
-			os.exit(1)
-		}
+		cli_load_paths(loader, &state)
 
 		for f in loader.files {
 			cf := fmt.caprintf("%s", f.path)

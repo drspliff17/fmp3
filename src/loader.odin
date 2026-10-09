@@ -134,3 +134,17 @@ loader_load_path :: proc(loader: ^Loader, path: string) -> bool {
 		return false
 	}
 }
+
+// Attempts to call loader_load_path on each given string. Prints error message if invalid path is given
+// however, does not break the loop until are paths have been attempted
+loader_load_path_slice :: proc(loader: ^Loader, paths: []string) {
+	for p, i in paths {
+		if !loader_load_path(loader, p) {
+			fmt.eprintfln(
+				"Invalid path: %s - Expected either directory containing .mp3 files, or a path to an .mp3 file\nSkipping",
+				p,
+			)
+			continue
+		}
+	}
+}
