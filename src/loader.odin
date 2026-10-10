@@ -8,6 +8,7 @@ import tl "taglib"
 MP3_File :: struct {
 	tagfile: ^tl.File,
 	tag:     ^tl.Tag,
+	audio:   ^tl.AudioProperties,
 	path:    string,
 }
 
@@ -22,10 +23,17 @@ mp3_create :: proc(path: cstring) -> (mp3: MP3_File, ok: bool) {
 		return {}, false
 	}
 
+	ap := tl.file_audioproperties(tf)
+	if ap == nil {
+		tl.file_free(tf)
+		return {}, false
+	}
+
 	m := MP3_File {
 		path    = fmt.aprintf("%s", path),
 		tagfile = tf,
 		tag     = tt,
+		audio   = ap,
 	}
 
 	return m, true

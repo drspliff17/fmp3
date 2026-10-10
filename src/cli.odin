@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:mem"
 import "core:os"
 import "core:strings"
+import "core:time"
 import tl "taglib"
 
 CLI_PROMPT_RETURN :: enum {
@@ -30,6 +31,10 @@ CLI_State :: struct {
 	arg_title:                    string,
 	arg_artist:                   string,
 	arg_album:                    string,
+	arg_comment:                  string,
+	arg_genre:                    string,
+	arg_year:                     i32,
+	arg_track:                    i32,
 
 	//
 	flag_get_single_line_entries: bool,
@@ -61,6 +66,8 @@ cli_state_free :: proc(state: ^CLI_State) {
 	if len(state.arg_artist) > 0 do delete_string(state.arg_artist)
 	if len(state.arg_album) > 0 do delete_string(state.arg_album)
 	if len(state.arg_output_path) > 0 do delete_string(state.arg_output_path)
+	if len(state.arg_comment) > 0 do delete_string(state.arg_comment)
+	if len(state.arg_genre) > 0 do delete_string(state.arg_genre)
 	for s in state.arg_paths do delete_string(s)
 	delete(state.arg_paths)
 }
@@ -162,18 +169,30 @@ cli_get_mp3_string :: proc(
 	title := tl.tag_title(file.tag)
 	artist := tl.tag_artist(file.tag)
 	album := tl.tag_album(file.tag)
+	length := tl.audioproperties_length(file.audio)
+	bitrate := tl.audioproperties_bitrate(file.audio)
+	sample := tl.audioproperties_samplerate(file.audio)
+
 	if single_line_entry {
 		return fmt.aprintfln(
-			"%s - T = %s - Ar = %s - Al = %s",
+			"[%d:%d] %s - T = %s - Ar = %s - Al = %s - B = %dkb/s - Sample = %dHz",
+			length / 60,
+			length % 60,
 			file.path,
 			title,
 			artist,
 			album,
+			bitrate,
+			sample,
 			allocator = allocator,
 		)
 	} else {
 		return fmt.aprintf(
-			"%s\n - Title  =  %s\n - Artist =  %s\n - Album  =  %s\n\n",
+			"[%d:%d] [Bitrate: %dkb/s] [Sample: %dHz]\n%s\n - Title  =  %s\n - Artist =  %s\n - Album  =  %s\n\n",
+			length / 60,
+			length % 60,
+			bitrate,
+			sample,
 			file.path,
 			title,
 			artist,
