@@ -1,5 +1,6 @@
 package taglib
 
+import "core:fmt"
 import "core:os"
 import "core:testing"
 
@@ -19,10 +20,19 @@ read_mp3_tags :: proc(t: ^testing.T) {
 	title := tag_title(tag)
 	artist := tag_artist(tag)
 	album := tag_album(tag)
+	genre := tag_genre(tag)
+	comment := tag_genre(tag)
+	year := tag_year(tag)
+	track := tag_track(tag)
 
 	if testing.expect(t, title != nil, "title returned nil") do testing.expect(t, len(string(title)) > 0, "title is empty")
 	if testing.expect(t, artist != nil, "artist returned nil") do testing.expect(t, len(string(artist)) > 0, "artist is empty")
 	if testing.expect(t, album != nil, "album returned nil") do testing.expect(t, len(string(album)) > 0, "album is empty")
+
+	testing.expect(t, genre != nil, "genre returned nil")
+	testing.expect(t, comment != nil, "comment returned nil")
+	testing.expect(t, year >= 0, "year returned nil")
+	testing.expect(t, track >= 0, "track returned nil")
 }
 
 @(test)
@@ -55,6 +65,11 @@ edit_mp3_tags :: proc(t: ^testing.T) {
 		tag_set_artist(tag, "Test Artist")
 		tag_set_album(tag, "Test Album")
 
+		tag_set_comment(tag, "Fuck a goose up the moose")
+		tag_set_year(tag, 1969)
+		tag_set_genre(tag, "Buffin")
+		tag_set_track(tag, 2)
+
 		saved := file_save(file)
 		if !testing.expect(t, saved != .FALSE, "file_save failed") do return
 	}
@@ -72,10 +87,19 @@ edit_mp3_tags :: proc(t: ^testing.T) {
 	title := tag_title(tag)
 	artist := tag_artist(tag)
 	album := tag_album(tag)
+	genre := tag_genre(tag)
+	comment := tag_genre(tag)
+	year := tag_year(tag)
+	track := tag_track(tag)
 
 	if testing.expect(t, title != nil, "title returned nil") do testing.expect_value(t, string(title), "Test Title")
 	if testing.expect(t, artist != nil, "artist returned nil") do testing.expect_value(t, string(artist), "Test Artist")
 	if testing.expect(t, album != nil, "album returned nil") do testing.expect_value(t, string(album), "Test Album")
+
+	if testing.expect(t, genre != nil, "genre returned nil") do testing.expect_value(t, string(genre), "Buffin")
+	if testing.expect(t, comment != nil, "comment returned nil") do testing.expect_value(t, string(comment), "Fuck a goose up the moose")
+	if testing.expect(t, year >= 0, "year returned nil") do testing.expect_value(t, year, 1969)
+	if testing.expect(t, track >= 0, "track returned nil") do testing.expect_value(t, track, 2)
 }
 
 @(test)
@@ -103,4 +127,28 @@ read_mp3_tags_manual_strings :: proc(t: ^testing.T) {
 	if testing.expect(t, title != nil, "title returned nil") do testing.expect(t, len(string(title)) > 0, "title is empty")
 	if testing.expect(t, artist != nil, "artist returned nil") do testing.expect(t, len(string(artist)) > 0, "artist is empty")
 	if testing.expect(t, album != nil, "album returned nil") do testing.expect(t, len(string(album)) > 0, "album is empty")
+}
+
+@(test)
+get_audio_properties :: proc(t: ^testing.T) {
+	path: cstring = "/home/drspliff/dev/Odin/fmp3/test/All_Signs_Point_To_Lauderdale.mp3"
+	file := file_new(path)
+	if !testing.expect(t, file != nil, "file_new returned nil") do return
+	defer file_free(file)
+
+	ap := file_audioproperties(file)
+	testing.expect(t, ap != nil, "file_audioproperties returned nil")
+
+	tp := "/home/drspliff/dev/Odin/fmp3/test/AudioProperties_All_Signs_Point_To_Launderdale.txt"
+
+	length := audioproperties_length(ap)
+	bitrate := audioproperties_bitrate(ap)
+	sample := audioproperties_samplerate(ap)
+	channels := audioproperties_channels(ap)
+
+	str := fmt.aprintf("l = %d\nb = %d\ns = %d\nc = %d", length, bitrate, sample, channels)
+	defer delete_string(str)
+
+	err := os.write_entire_file_from_string(tp, str)
+	testing.expect(t, err == nil, "failed to write AudioProperties test file")
 }
