@@ -114,3 +114,41 @@ get_directory_line_test :: proc(t: ^testing.T) {
 	if !testing.expect(t, len(stderr) == 0, "fmp3 returned error") do return
 	if !testing.expect(t, len(stdout) > 0, "fmp3 did not return any data") do return
 }
+
+@(test)
+set_file_test :: proc(t: ^testing.T) {
+	path := "/home/drspliff/dev/Odin/fmp3/test/Edited_Tags_All_Signs_Point_To_Lauderdale.mp3"
+	if !testing.expect(t, os.exists(path), "expected test directory not found") do return
+
+	_, stdout, stderr, err := os.process_exec(
+		os.Process_Desc {
+			command = []string {
+				"fmp3",
+				"-s",
+				"-a",
+				"Uppers",
+				"-t",
+				"Ya",
+				"-A",
+				"Fuckers",
+				"-y",
+				"1969",
+				"-c",
+				"I love to comment",
+				"-g",
+				"goose music",
+				"-n",
+				"20",
+				path,
+			},
+		},
+		context.allocator,
+	)
+	defer {
+		delete(stdout)
+		delete(stderr)
+	}
+
+	if !testing.expect(t, err == nil, "fmp3 process failed to execute") do return
+	if !testing.expect(t, len(stderr) == 0, "fmp3 returned error") do return
+}

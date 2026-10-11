@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:os"
+import "core:strconv"
 import "core:strings"
 import tl "taglib"
 
@@ -87,6 +88,51 @@ main :: proc() {
 					}
 					state.arg_album = fmt.aprintf("%s", a[1])
 					a = a[2:]
+
+				case "-c", "comment", "--comment":
+					if len(a) < 2 {
+						fmt.eprintln("Expected a value to set comment tag")
+						os.exit(1)
+					}
+					state.arg_comment = fmt.aprintf("%s", a[1])
+					a = a[2:]
+
+				case "-g", "genre", "--genre":
+					if len(a) < 2 {
+						fmt.eprintln("Expected a value to set genre tag")
+						os.exit(1)
+					}
+					state.arg_genre = fmt.aprintf("%s", a[1])
+					a = a[2:]
+
+				case "-y", "year", "--year":
+					if len(a) < 2 {
+						fmt.eprintln("Expected a value to set year tag")
+						os.exit(1)
+					}
+
+					v, ok := strconv.parse_int(a[1], 10)
+					if !ok {
+						fmt.eprintln("Invalid value provided for year tag")
+						os.exit(1)
+					}
+					state.arg_year = v < 0 ? 0 : i32(v)
+					a = a[2:]
+
+				case "-n", "track", "--track":
+					if len(a) < 2 {
+						fmt.eprintln("Expected a value to set track tag")
+						os.exit(1)
+					}
+
+					v, ok := strconv.parse_int(a[1], 10)
+					if !ok {
+						fmt.eprintln("Invalid value provided for track tag")
+						os.exit(1)
+					}
+					state.arg_track = v < 0 ? 0 : i32(v)
+					a = a[2:]
+
 
 				case:
 					if !os.exists(a[0]) {
