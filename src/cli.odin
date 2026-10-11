@@ -4,7 +4,6 @@ import "core:fmt"
 import "core:mem"
 import "core:os"
 import "core:strings"
-import "core:time"
 import tl "taglib"
 
 CLI_PROMPT_RETURN :: enum {

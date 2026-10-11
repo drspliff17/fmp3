@@ -17,6 +17,11 @@ mp3_create :: proc(path: cstring) -> (mp3: MP3_File, ok: bool) {
 	tf := tl.file_new(path)
 	if tf == nil do return {}, false
 
+	if tl.file_is_valid(tf) == .FALSE {
+		tl.file_free(tf)
+		return {}, false
+	}
+
 	tt := tl.file_tag(tf)
 	if tt == nil {
 		tl.file_free(tf)
@@ -67,12 +72,6 @@ loader_free :: proc(l: ^Loader) {
 }
 
 
-// Ensure given file_info is a directory
-loader_validate_directory_from_file_info :: proc(file: os.File_Info) -> bool {
-	if file.type != .Directory do return false
-	return true
-}
-
 // Ensures given path is a directory, wraps loader_validate_directory_from_file_info
 loader_validate_directory_from_string :: proc(path: string) -> bool {
 	i, e := os.stat(path, context.allocator)
@@ -81,10 +80,9 @@ loader_validate_directory_from_string :: proc(path: string) -> bool {
 	return loader_validate_directory_from_file_info(i)
 }
 
-// Ensure given file_info is a .mp3 file
-loader_validate_file_from_file_info :: proc(file: os.File_Info) -> bool {
-	if file.type != .Regular do return false
-	if os.ext(file.name) != ".mp3" do return false
+// Ensure given file_info is a directory
+loader_validate_directory_from_file_info :: proc(file: os.File_Info) -> bool {
+	if file.type != .Directory do return false
 	return true
 }
 
@@ -94,6 +92,13 @@ loader_validate_file_from_string :: proc(path: string) -> bool {
 	if e != nil do return false
 	defer os.file_info_delete(f, context.allocator)
 	return loader_validate_file_from_file_info(f)
+}
+
+// Ensure given file_info is a .mp3 file
+loader_validate_file_from_file_info :: proc(file: os.File_Info) -> bool {
+	if file.type != .Regular do return false
+	if os.ext(file.name) != ".mp3" do return false
+	return true
 }
 
 // Create and append MP3_File to Loader
