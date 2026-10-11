@@ -21,6 +21,33 @@ main :: proc() {
 		switch arg[0] {
 
 		//
+		case "-ge", "getext", "--get-ext":
+			a := arg[1:]
+			switch a[0] {
+			case "-t", "title":
+				a = a[1:]
+
+			case "-a", "artist":
+				a = a[1:]
+
+			case "-A", "album":
+				a = a[1:]
+
+			case "-c", "comment":
+				a = a[1:]
+
+			case "-g", "genre":
+				a = a[1:]
+
+			case "-y", "year":
+				a = a[1:]
+
+			case "-n", "track":
+				a = a[1:]
+
+			}
+
+		//
 		case "-g", "get", "--get":
 			a := arg[1:]
 			for len(a) > 0 {
@@ -35,7 +62,7 @@ main :: proc() {
 						os.exit(1)
 					}
 					p := cli_validate_arg_output(a[1])
-					state.arg_output_path = p
+					state.unit_output_path.arg = p
 					a = a[2:]
 
 				case:
@@ -70,7 +97,7 @@ main :: proc() {
 						fmt.eprintln("Expected a value to set title tag")
 						os.exit(1)
 					}
-					state.arg_title = fmt.aprintf("%s", a[1])
+					state.unit_title.arg = fmt.aprintf("%s", a[1])
 					a = a[2:]
 
 				case "-a", "artist", "--artist":
@@ -78,7 +105,7 @@ main :: proc() {
 						fmt.eprintln("Expected a value to set artist tag")
 						os.exit(1)
 					}
-					state.arg_artist = fmt.aprintf("%s", a[1])
+					state.unit_artist.arg = fmt.aprintf("%s", a[1])
 					a = a[2:]
 
 				case "-A", "album", "--album":
@@ -86,7 +113,7 @@ main :: proc() {
 						fmt.eprintln("Expected a value to set album tag")
 						os.exit(1)
 					}
-					state.arg_album = fmt.aprintf("%s", a[1])
+					state.unit_album.arg = fmt.aprintf("%s", a[1])
 					a = a[2:]
 
 				case "-c", "comment", "--comment":
@@ -94,7 +121,7 @@ main :: proc() {
 						fmt.eprintln("Expected a value to set comment tag")
 						os.exit(1)
 					}
-					state.arg_comment = fmt.aprintf("%s", a[1])
+					state.unit_comment.arg = fmt.aprintf("%s", a[1])
 					a = a[2:]
 
 				case "-g", "genre", "--genre":
@@ -102,7 +129,7 @@ main :: proc() {
 						fmt.eprintln("Expected a value to set genre tag")
 						os.exit(1)
 					}
-					state.arg_genre = fmt.aprintf("%s", a[1])
+					state.unit_genre.arg = fmt.aprintf("%s", a[1])
 					a = a[2:]
 
 				case "-y", "year", "--year":
@@ -116,7 +143,7 @@ main :: proc() {
 						fmt.eprintln("Invalid value provided for year tag")
 						os.exit(1)
 					}
-					state.arg_year = v < 0 ? 0 : i32(v)
+					state.unit_year.arg = v < 0 ? 0 : i32(v)
 					a = a[2:]
 
 				case "-n", "track", "--track":
@@ -130,7 +157,7 @@ main :: proc() {
 						fmt.eprintln("Invalid value provided for track tag")
 						os.exit(1)
 					}
-					state.arg_track = v < 0 ? 0 : i32(v)
+					state.unit_track.arg = v < 0 ? 0 : i32(v)
 					a = a[2:]
 
 
@@ -165,20 +192,20 @@ main :: proc() {
 		cli_load_paths(loader, &state)
 
 		for f in loader.files {
-			if state.arg_title != "" {
-				ct := fmt.caprintf("%s", state.arg_title)
+			if state.unit_title.arg != "" {
+				ct := fmt.caprintf("%s", state.unit_title.arg)
 				tl.tag_set_title(f.tag, ct)
 				delete_cstring(ct)
 			}
 
-			if state.arg_artist != "" {
-				ca := fmt.caprintf("%s", state.arg_artist)
+			if state.unit_artist.arg != "" {
+				ca := fmt.caprintf("%s", state.unit_artist.arg)
 				tl.tag_set_artist(f.tag, ca)
 				delete_cstring(ca)
 			}
 
-			if state.arg_album != "" {
-				cA := fmt.caprintf("%s", state.arg_album)
+			if state.unit_album.arg != "" {
+				cA := fmt.caprintf("%s", state.unit_album.arg)
 				tl.tag_set_album(f.tag, cA)
 				delete_cstring(cA)
 			}
@@ -190,7 +217,7 @@ main :: proc() {
 	case .GET:
 		cli_load_paths(loader, &state)
 
-		if state.arg_output_path == "" {
+		if state.unit_output_path.arg == "" {
 			for f in loader.files {
 				s := cli_get_mp3_string(f, state.flag_get_single_line_entries)
 				fmt.print(s)
@@ -211,9 +238,9 @@ main :: proc() {
 			str := strings.concatenate(ts[:], context.allocator)
 			defer delete_string(str)
 
-			e := os.write_entire_file_from_string(state.arg_output_path, str)
+			e := os.write_entire_file_from_string(state.unit_output_path.arg, str)
 			if e != nil {
-				fmt.eprintfln("Failed to write output: %s - %v", state.arg_output_path, e)
+				fmt.eprintfln("Failed to write output: %s - %v", state.unit_output_path.arg, e)
 				os.exit(1)
 			}
 

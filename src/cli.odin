@@ -19,21 +19,32 @@ CLI_MODES :: enum {
 	CLEAR,
 }
 
+CLI_Unit_String :: struct {
+	arg:  string,
+	flag: bool,
+}
+
+CLI_Unit_Int :: struct {
+	arg:  i32,
+	flag: bool,
+}
+
+
 CLI_State :: struct {
 	// Represents the target files/directories parsed from arguments
 	arg_paths:                    [dynamic]string,
 
 	// When set, GET dispatch will output data to this path, instead of stdout
-	arg_output_path:              string,
+	unit_output_path:             CLI_Unit_String,
 
 	//
-	arg_title:                    string,
-	arg_artist:                   string,
-	arg_album:                    string,
-	arg_comment:                  string,
-	arg_genre:                    string,
-	arg_year:                     i32,
-	arg_track:                    i32,
+	unit_title:                   CLI_Unit_String,
+	unit_artist:                  CLI_Unit_String,
+	unit_album:                   CLI_Unit_String,
+	unit_comment:                 CLI_Unit_String,
+	unit_genre:                   CLI_Unit_String,
+	unit_year:                    CLI_Unit_Int,
+	unit_track:                   CLI_Unit_Int,
 
 	//
 	flag_get_single_line_entries: bool,
@@ -61,12 +72,12 @@ cli_load_paths :: proc(l: ^Loader, s: ^CLI_State, err_if_none_loaded: bool = tru
 
 // CLI_State Destructor
 cli_state_free :: proc(state: ^CLI_State) {
-	if len(state.arg_title) > 0 do delete_string(state.arg_title)
-	if len(state.arg_artist) > 0 do delete_string(state.arg_artist)
-	if len(state.arg_album) > 0 do delete_string(state.arg_album)
-	if len(state.arg_output_path) > 0 do delete_string(state.arg_output_path)
-	if len(state.arg_comment) > 0 do delete_string(state.arg_comment)
-	if len(state.arg_genre) > 0 do delete_string(state.arg_genre)
+	if len(state.unit_title.arg) > 0 do delete_string(state.unit_title.arg)
+	if len(state.unit_artist.arg) > 0 do delete_string(state.unit_artist.arg)
+	if len(state.unit_album.arg) > 0 do delete_string(state.unit_album.arg)
+	if len(state.unit_comment.arg) > 0 do delete_string(state.unit_comment.arg)
+	if len(state.unit_genre.arg) > 0 do delete_string(state.unit_genre.arg)
+	if len(state.unit_output_path.arg) > 0 do delete_string(state.unit_output_path.arg)
 	for s in state.arg_paths do delete_string(s)
 	delete(state.arg_paths)
 }
